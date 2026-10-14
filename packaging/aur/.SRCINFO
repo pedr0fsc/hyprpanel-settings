@@ -1,0 +1,24 @@
+pkgbase = hyprpanel-settings-git
+	pkgdesc = Serpantinum-styled GUI for Hyprland keybinds, appearance, monitors, and hyprlock (git)
+	pkgver = 0.1.0.r0.g0000000
+	pkgrel = 1
+	url = https://github.com/pedr0fsc/hyprpanel-settings
+	arch = any
+	license = MIT
+	makedepends = git
+	depends = python
+	depends = python-gobject
+	depends = python-cairo
+	depends = gtk4
+	depends = hyprland
+	optdepends = wofi: default application launcher binding
+	optdepends = nautilus: default file manager binding
+	optdepends = kitty: default terminal and task-manager host
+	optdepends = htop: task manager TUI
+	optdepends = hyprlock: lockscreen fallback when Serpantinum lock is unavailable
+	provides = hyprpanel-settings
+	conflicts = hyprpanel-settings
+	source = hyprpanel-settings::git+https://github.com/pedr0fsc/hyprpanel-settings.git
+	sha256sums = SKIP
+
+pkgname = hyprpanel-settings-git
