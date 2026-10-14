@@ -1,4 +1,4 @@
-# Maintainer: Pedro da Fonseca Schwertner <pedrodafonsecaschwertner@gmail.com>
+# Maintainer: Pedro da Fonseca Schwertner <pedrodafonsecaschwertner at gmail dot com>
 pkgname=hyprpanel-settings
 pkgver=0.1.0
 pkgrel=1
@@ -21,9 +21,8 @@ optdepends=(
   'hyprlock: lockscreen fallback when Serpantinum lock is unavailable'
 )
 conflicts=('hyprpanel-settings-git')
-# Replace SKIP with the sha256 of the GitHub v$pkgver tarball after the tag is pushed.
-source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('3e423eb83cdbd26883c74c827478e2737ed2075bfbae0b9987ace34dd7b127fc')
 
 package() {
   cd "$srcdir/$pkgname-$pkgver"

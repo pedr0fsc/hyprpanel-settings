@@ -16,7 +16,7 @@ pkgbase = hyprpanel-settings
 	optdepends = htop: task manager TUI
 	optdepends = hyprlock: lockscreen fallback when Serpantinum lock is unavailable
 	conflicts = hyprpanel-settings-git
-	source = hyprpanel-settings-0.1.0.tar.gz::https://github.com/pedr0fsc/hyprpanel-settings/archive/refs/tags/v0.1.0.tar.gz
-	sha256sums = SKIP
+	source = hyprpanel-settings-0.1.0.tar.gz
+	sha256sums = 3e423eb83cdbd26883c74c827478e2737ed2075bfbae0b9987ace34dd7b127fc
 
 pkgname = hyprpanel-settings
