@@ -16,6 +16,7 @@ from theme import hex_to_rgba, load_colors, load_theme_meta, list_presets
 HOME = Path.home()
 HYPR_DIR = HOME / ".config" / "hypr"
 STATE_PATH = HYPR_DIR / "hyprpanel" / "state.json"
+KEYBINDS_WIDGET_PATH = HYPR_DIR / "hyprpanel" / "keybinds.json"
 LUA_PATH = HYPR_DIR / "hyprland.lua"
 CONF_MIRROR = HYPR_DIR / "hyprpanel" / "hyprland.conf"
 LOCK_PATH = HYPR_DIR / "hyprlock.conf"
@@ -79,13 +80,27 @@ def detect_task_manager() -> str:
 
 
 def detect_launcher() -> str:
-    # Serpantinum's IPC often returns success without showing a window.
-    # Prefer wofi, which is installed and working on this machine.
-    if shutil.which("wofi"):
-        return "wofi --show drun"
-    if LAUNCHER_BIN.exists():
-        return str(LAUNCHER_BIN)
-    return "serpantinum msg toggle launcher"
+    return detect_serpantinum_launcher()
+
+
+def detect_serpantinum_launcher() -> str:
+    wrapper = HOME / ".local" / "bin" / "hypr-serpantinum-launcher"
+    found = shutil.which("hypr-serpantinum-launcher")
+    if found:
+        return found
+    if wrapper.exists():
+        return str(wrapper)
+    return str(wrapper)
+
+
+def detect_show_desktop() -> str:
+    found = shutil.which("hypr-show-desktop")
+    if found:
+        return found
+    local = HOME / ".local" / "bin" / "hypr-show-desktop"
+    if local.exists():
+        return str(local)
+    return str(local)
 
 
 def detect_lock() -> str:
@@ -203,14 +218,14 @@ def default_binds() -> list[dict[str, Any]]:
     term = which_first("kitty", "alacritty", "foot")
     binds: list[dict[str, Any]] = [
         bind("apps", "Open terminal", ["SUPER"], "RETURN", "exec", term),
-        bind("apps", "App launcher", ["SUPER"], "SPACE", "exec", launch),
+        bind("apps", "Serpantinum launcher", ["SUPER"], "SPACE", "exec", launch),
         bind("apps", "File manager", ["SUPER"], "E", "exec", fm),
         bind("apps", "Hyprpanel settings", ["SUPER"], "comma", "exec", str(PANEL_BIN)),
         bind("windows", "Close window", ["SUPER"], "Q", "close", ""),
         bind("windows", "Fullscreen", ["SUPER"], "F", "fullscreen", ""),
         bind("windows", "Toggle floating", ["SUPER"], "V", "float", ""),
         bind("windows", "Toggle split", ["SUPER"], "J", "layout", "togglesplit"),
-        bind("system", "Show desktop", ["SUPER"], "D", "exec", "hyprctl dispatch togglespecialworkspace desktop"),
+        bind("system", "Show desktop", ["SUPER"], "D", "exec", detect_show_desktop()),
         bind("system", "Task manager", ["CTRL", "SHIFT"], "Escape", "exec", task),
         bind("system", "Lock screen", ["SUPER"], "L", "exec", lock),
         bind("system", "Lock screen (Shift)", ["SUPER", "SHIFT"], "L", "exec", lock),
@@ -293,6 +308,7 @@ def load_model() -> dict[str, Any]:
     _ensure_panel_bind(model)
     migrate_model(model)
     refresh_monitors(model)
+    export_keybinds_widget(model)
     return model
 
 
@@ -311,6 +327,18 @@ def _upsert_bind(binds: list[dict[str, Any]], item: dict[str, Any]) -> None:
         existing.update({k: item[k] for k in ("description", "kind", "arg", "category", "repeating", "locked", "mouse", "enabled") if k in item})
         return
     binds.append(item)
+
+
+def _remove_bind(binds: list[dict[str, Any]], mods: list[str], key: str) -> None:
+    want = [str(m).upper() for m in mods]
+    binds[:] = [
+        item
+        for item in binds
+        if not (
+            [str(m).upper() for m in (item.get("mods") or [])] == want
+            and str(item.get("key") or "").upper() == str(key).upper()
+        )
+    ]
 
 
 def migrate_model(model: dict[str, Any]) -> None:
@@ -338,17 +366,45 @@ def migrate_model(model: dict[str, Any]) -> None:
             item["arg"] = task
         if "serpantinumd lock" in arg or arg == "serpantinumd lock":
             item["arg"] = lock
+        if mods == ["SUPER"] and key.upper() == "SPACE":
+            item["arg"] = detect_serpantinum_launcher()
+            item["description"] = "Serpantinum launcher"
+            item["kind"] = "exec"
+            item["category"] = "apps"
+        if mods == ["SUPER"] and key.upper() == "M" and (
+            "dispatch exit" in arg or item.get("kind") == "exec" and "exit" in desc
+        ):
+            item["kind"] = "exit"
+            item["arg"] = ""
+            item["description"] = "Exit Hyprland"
+            item["category"] = "system"
+        if mods == ["SUPER"] and key.upper() == "D" and (
+            "togglespecialworkspace" in arg or "desktop" in desc or "ambiente de trabalho" in desc
+        ):
+            item["arg"] = detect_show_desktop()
+            item["kind"] = "exec"
+            item["category"] = "system"
+            item["description"] = item.get("description") or "Show desktop"
         if mods == ["SUPER"] and key == "L" and ("wofi" in arg or "launcher" in arg):
             item["mods"] = ["SUPER"]
             item["key"] = "SPACE"
-            item["arg"] = launch
-            item["description"] = "App launcher"
+            item["arg"] = detect_serpantinum_launcher()
+            item["description"] = "Serpantinum launcher"
             item["kind"] = "exec"
             item["category"] = "apps"
 
+    programs["menu"] = detect_serpantinum_launcher()
+    _remove_bind(binds, ["SUPER"], "Z")
+    binds[:] = [
+        item
+        for item in binds
+        if str(item.get("key") or "").replace(" ", "").upper() != "SHIFT+L"
+    ]
     _upsert_bind(binds, bind("apps", "File manager", ["SUPER"], "E", "exec", programs["fileManager"]))
-    _upsert_bind(binds, bind("apps", "App launcher", ["SUPER"], "SPACE", "exec", launch))
+    _upsert_bind(binds, bind("apps", "Serpantinum launcher", ["SUPER"], "SPACE", "exec", detect_serpantinum_launcher()))
+    _upsert_bind(binds, bind("system", "Show desktop", ["SUPER"], "D", "exec", detect_show_desktop()))
     _upsert_bind(binds, bind("system", "Lock screen", ["SUPER"], "L", "exec", lock))
+    _upsert_bind(binds, bind("system", "Lock screen (Shift)", ["SUPER", "SHIFT"], "L", "exec", lock))
     _upsert_bind(binds, bind("system", "Task manager", ["CTRL", "SHIFT"], "Escape", "exec", task))
     for desc, key, delta in (
         ("Resize left", "left", "-40 0"),
@@ -364,7 +420,7 @@ def migrate_model(model: dict[str, Any]) -> None:
 
     model["lock"]["command"] = lock
     model["idle"]["lock_cmd"] = lock
-    model["hyprpanel_migrate"] = 2
+    model["hyprpanel_migrate"] = 4
 
 
 def serpantinum_monitor_scales() -> dict[str, float]:
@@ -484,6 +540,7 @@ def apply_monitor_scales(model: dict[str, Any]) -> None:
 def save_state(model: dict[str, Any]) -> None:
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(json.dumps(model, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    export_keybinds_widget(model)
 
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
@@ -830,11 +887,85 @@ def keys_pretty(mods: list[str], key: str) -> str:
         "up": "↑",
         "down": "↓",
         "space": "Space",
+        "SPACE": "Space",
         "Escape": "Esc",
+        "ESCAPE": "Esc",
+        "TAB": "Tab",
+        "Print": "Print",
     }.get(key, key.replace("XF86", ""))
     bits = [m.title() if m != "SUPER" else "Super" for m in mods]
     bits.append(pretty_key)
     return " + ".join(bits)
+
+
+CATEGORY_TITLES = {
+    "apps": "Apps",
+    "windows": "Windows",
+    "workspaces": "Workspaces",
+    "focus": "Focus",
+    "media": "Media",
+    "system": "System",
+    "mouse": "Mouse",
+}
+
+CATEGORY_ORDER = ["apps", "windows", "focus", "workspaces", "system", "media", "mouse"]
+
+
+def export_keybinds_widget(model: dict[str, Any]) -> Path:
+    """Write a compact JSON cheatsheet that the Serpantinum widget watches."""
+    grouped: dict[str, list[dict[str, str]]] = {key: [] for key in CATEGORY_ORDER}
+    workspace_switch: list[str] = []
+    workspace_move: list[str] = []
+
+    for item in model.get("binds") or []:
+        if not item.get("enabled", True):
+            continue
+        cat = str(item.get("category") or "apps")
+        desc = str(item.get("description") or "Binding")
+        keys = keys_pretty(list(item.get("mods") or []), str(item.get("key") or ""))
+        kind = item.get("kind")
+        mods = [str(m).upper() for m in (item.get("mods") or [])]
+        key = str(item.get("key") or "")
+        if kind == "workspace" and mods == ["SUPER"] and key.isdigit():
+            workspace_switch.append(key)
+            continue
+        if kind == "movetoworkspace" and mods == ["SUPER", "SHIFT"] and key.isdigit():
+            workspace_move.append(key)
+            continue
+        grouped.setdefault(cat, []).append({"keys": keys, "description": desc})
+
+    if workspace_switch:
+        grouped.setdefault("workspaces", []).insert(
+            0, {"keys": "Super + 1–0", "description": "Switch workspace"}
+        )
+    if workspace_move:
+        grouped.setdefault("workspaces", []).insert(
+            1 if workspace_switch else 0,
+            {"keys": "Super + Shift + 1–0", "description": "Move window to workspace"},
+        )
+
+    groups = []
+    seen: set[str] = set()
+    for cat in CATEGORY_ORDER + [c for c in grouped if c not in CATEGORY_ORDER]:
+        if cat in seen:
+            continue
+        seen.add(cat)
+        items = grouped.get(cat) or []
+        if not items:
+            continue
+        groups.append({
+            "id": cat,
+            "title": CATEGORY_TITLES.get(cat, cat.replace("_", " ").title()),
+            "items": items,
+        })
+
+    payload = {"version": 1, "groups": groups}
+    KEYBINDS_WIDGET_PATH.parent.mkdir(parents=True, exist_ok=True)
+    KEYBINDS_WIDGET_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return KEYBINDS_WIDGET_PATH
 
 
 def keys_lua(mods: list[str], key: str) -> str:

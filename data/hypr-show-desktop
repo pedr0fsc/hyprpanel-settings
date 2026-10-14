@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Toggle Show Desktop using Hyprland 0.56 Lua dispatchers."""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+STATE = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / "hypr-show-desktop.json"
+SPECIAL = "special:showdesktop"
+
+
+def hypr(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["hyprctl", *args], capture_output=True, text=True, check=False)
+
+
+def jload(args: list[str], fallback):
+    try:
+        return json.loads(hypr(*args).stdout or "")
+    except json.JSONDecodeError:
+        return fallback
+
+
+def eval_lua(code: str) -> subprocess.CompletedProcess[str]:
+    return hypr("eval", code)
+
+
+def lua_str(value: str) -> str:
+    return json.dumps(value)
+
+
+def move_window(address: str, workspace: str | int) -> None:
+    ws = json.dumps(workspace) if isinstance(workspace, str) else str(int(workspace))
+    code = (
+        f'local w = hl.get_window("address:{address}")\n'
+        f"if w ~= nil then\n"
+        f"  hl.dispatch(hl.dsp.window.move({{ workspace = {ws}, window = w }}))\n"
+        f"end\n"
+    )
+    result = eval_lua(code)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr or result.stdout or "hyprctl eval failed\n")
+
+
+def regular_windows(clients: list[dict], monitor: int | None) -> list[dict]:
+    out = []
+    for client in clients:
+        if not client.get("mapped") or client.get("hidden") or client.get("pinned"):
+            continue
+        workspace = client.get("workspace") or {}
+        wid = workspace.get("id")
+        name = str(workspace.get("name") or "")
+        if not isinstance(wid, int) or wid <= 0 or name.startswith("special"):
+            continue
+        if monitor is not None and client.get("monitor") not in (monitor, None):
+            continue
+        if not client.get("class") and not client.get("title"):
+            continue
+        out.append(client)
+    return out
+
+
+def main() -> int:
+    clients = jload(["clients", "-j"], [])
+    active = jload(["activeworkspace", "-j"], {})
+    monitor = active.get("monitorID")
+    if not isinstance(monitor, int):
+        monitor = None
+
+    saved = []
+    if STATE.exists():
+        try:
+            raw = json.loads(STATE.read_text(encoding="utf-8"))
+            saved = raw if isinstance(raw, list) else []
+        except json.JSONDecodeError:
+            saved = []
+
+    present = {c.get("address") for c in clients}
+    restore = [item for item in saved if item.get("address") in present]
+    if restore:
+        for item in restore:
+            move_window(item["address"], item["workspace"])
+        STATE.unlink(missing_ok=True)
+        return 0
+
+    hidden = []
+    for client in regular_windows(clients, monitor):
+        address = client.get("address")
+        workspace = (client.get("workspace") or {}).get("id")
+        if not address or workspace is None:
+            continue
+        hidden.append({"address": address, "workspace": workspace})
+        move_window(address, SPECIAL)
+    if hidden:
+        STATE.write_text(json.dumps(hidden), encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

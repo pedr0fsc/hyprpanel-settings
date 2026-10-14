@@ -63,8 +63,9 @@ QUICK_ACTIONS = [
     ("Custom / keep current", None),
     ("Open file manager", {"kind": "exec", "arg": configio.detect_file_manager(), "category": "apps", "description": "File manager"}),
     ("Open terminal", {"kind": "exec", "arg": configio.which_first("kitty", "alacritty", "foot"), "category": "apps", "description": "Open terminal"}),
+    ("Serpantinum launcher", {"kind": "exec", "arg": configio.detect_serpantinum_launcher(), "category": "apps", "description": "Serpantinum launcher"}),
     ("App launcher (wofi)", {"kind": "exec", "arg": "wofi --show drun", "category": "apps", "description": "App launcher"}),
-    ("Serpantinum launcher", {"kind": "exec", "arg": str(configio.LAUNCHER_BIN), "category": "apps", "description": "Serpantinum launcher"}),
+    ("Show desktop", {"kind": "exec", "arg": configio.detect_show_desktop(), "category": "system", "description": "Show desktop"}),
     ("Lock screen", {"kind": "exec", "arg": configio.detect_lock(), "category": "system", "description": "Lock screen"}),
     ("Task manager", {"kind": "exec", "arg": configio.detect_task_manager(), "category": "system", "description": "Task manager"}),
     ("Hyprpanel settings", {"kind": "exec", "arg": str(configio.PANEL_BIN), "category": "apps", "description": "Hyprpanel settings"}),
@@ -351,7 +352,7 @@ class HyprpanelWindow(Gtk.ApplicationWindow):
     def _page_bindings(self, box: Gtk.Box) -> None:
         box.append(w.section_header(
             "Key bindings",
-            "Windows-like: Super+L lock · Super+E files · Super+Space launcher · Ctrl+Shift+Esc task manager. "
+            "Windows-like: Super+L lock · Super+E files · Super+Space Serpantinum launcher · Super+D show desktop · Ctrl+Shift+Esc task manager. "
             "Resize: Super+Ctrl+arrows or Super+Ctrl+I/J/K/L.",
         ))
         tools = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -458,6 +459,7 @@ class HyprpanelWindow(Gtk.ApplicationWindow):
         binds = self.model.get("binds") or []
         self.model["binds"] = [b for b in binds if b is not item]
         self.mark_dirty()
+        configio.export_keybinds_widget(self.model)
         self._rebuild_binds()
 
     def _capture_into(self, item: dict[str, Any]) -> None:
@@ -729,11 +731,17 @@ class HyprpanelWindow(Gtk.ApplicationWindow):
         box.append(w.section_header("Default programs", "Used by the built-in application shortcuts."))
         box.append(w.labeled_entry("Terminal", "Super + Enter", p.get("terminal") or "kitty", lambda v: self._set_program("terminal", v), icon="󰆍"))
         box.append(w.labeled_entry("File manager", "Super + E", p.get("fileManager") or "dolphin", lambda v: self._set_program("fileManager", v), icon="󰉋"))
-        box.append(w.labeled_entry("Launcher", "Super + L", p.get("menu") or "serpantinumd toggle launcher", lambda v: self._set_program("menu", v), icon="󰵆"))
+        box.append(w.labeled_entry(
+            "Launcher",
+            "Super + Space",
+            p.get("menu") or configio.detect_serpantinum_launcher(),
+            lambda v: self._set_program("menu", v),
+            icon="󰵆",
+        ))
 
     def _set_program(self, key: str, value: str) -> None:
         self.model["programs"][key] = value
-        mapping = {"terminal": ("Open terminal",), "fileManager": ("File manager",), "menu": ("App launcher",)}
+        mapping = {"terminal": ("Open terminal",), "fileManager": ("File manager",), "menu": ("Serpantinum launcher", "App launcher")}
         for item in self.model.get("binds") or []:
             if item.get("description") in mapping.get(key, ()):
                 item["arg"] = value
@@ -959,6 +967,7 @@ class CaptureDialog(Gtk.Window):
         self.item["mods"] = mods
         self.item["key"] = key
         self.parent_win.mark_dirty()
+        configio.export_keybinds_widget(self.parent_win.model)
         self.parent_win._rebuild_binds()
         self.parent_win.toast.show_message(f"Set to {configio.keys_pretty(mods, key)}")
         self.close()
@@ -1069,6 +1078,7 @@ class BindEditor(Gtk.Window):
         if self.is_new:
             self.parent_win.model.setdefault("binds", []).append(self.item)
         self.parent_win.mark_dirty()
+        configio.export_keybinds_widget(self.parent_win.model)
         self.parent_win._rebuild_binds()
         self.close()
 

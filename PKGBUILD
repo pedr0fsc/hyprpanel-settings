@@ -14,11 +14,11 @@ depends=(
   'hyprland'
 )
 optdepends=(
-  'wofi: default application launcher binding'
   'nautilus: default file manager binding'
   'kitty: default terminal and task-manager host'
   'htop: task manager TUI'
   'hyprlock: lockscreen fallback when Serpantinum lock is unavailable'
+  'wofi: optional alternate application launcher'
 )
 conflicts=('hyprpanel-settings-git')
 source=("$pkgname-$pkgver.tar.gz")
