@@ -1,10 +1,84 @@
 # Hyprpanel Settings
 
-A GTK4 settings app for Hyprland that follows [Serpantinum](https://github.com) theme presets. Edit keybinds, gaps, borders, blur, lockscreen, input, autostart, and monitors without writing Lua by hand.
+A GTK4 settings app for [Hyprland](https://hypr.land) that follows [Serpantinum](https://github.com/ilyamiro/serpantinum) theme presets. Edit keybinds, gaps, borders, blur, lockscreen, input, autostart, and monitors without writing Lua by hand.
 
 Hyprland 0.55+ uses `~/.config/hypr/hyprland.lua`. This panel writes that file, plus `hyprlock.conf` and `hypridle.conf`, and keeps a readable `.conf` mirror.
 
-The AUR name is **`hyprpanel-settings`** because [`hyprpanel`](https://aur.archlinux.org/packages/hyprpanel) is already a different bar/shell.
+The package name is **`hyprpanel-settings`** because [`hyprpanel`](https://aur.archlinux.org/packages/hyprpanel) on the AUR is already a different bar/shell.
+
+## Requirements
+
+- [Hyprland](https://hypr.land) 0.55 or newer (Lua config)
+- Python 3, GTK 4, `python-gobject`, `python-cairo`
+
+Optional, used by the default bindings:
+
+| Package | Used for |
+| --- | --- |
+| `wofi` | application launcher |
+| `nautilus` | file manager |
+| `kitty` | terminal and task-manager host |
+| `htop` | task manager |
+| `hyprlock` | lockscreen fallback |
+
+## Install
+
+### From Git (recommended)
+
+```bash
+git clone https://github.com/pedr0fsc/hyprpanel-settings.git
+cd hyprpanel-settings
+make install-local
+```
+
+That installs to `~/.local`:
+
+- `~/.local/bin/hyprpanel-settings`
+- `~/.local/share/hyprpanel-settings/`
+- desktop entry and icon
+
+Make sure `~/.local/bin` is on your `PATH`. Then log out of Hyprland or run:
+
+```bash
+hash -r
+hyprpanel-settings
+```
+
+System-wide install:
+
+```bash
+sudo make install PREFIX=/usr
+```
+
+### Arch Linux package from this repo
+
+Build and install a pacman package without publishing anything:
+
+```bash
+git clone https://github.com/pedr0fsc/hyprpanel-settings.git
+cd hyprpanel-settings
+makepkg -si -p PKGBUILD.local
+```
+
+Or, if you already cloned the tree:
+
+```bash
+cd hyprpanel-settings
+makepkg -si -p PKGBUILD.local
+```
+
+### AUR
+
+An AUR package named `hyprpanel-settings` is planned. Arch User Repository registration is temporarily closed for maintenance, so it is not listed yet.
+
+Until then, use **From Git** or **Arch Linux package from this repo** above.
+
+When the AUR listing exists:
+
+```bash
+yay -S hyprpanel-settings
+# or: paru -S hyprpanel-settings
+```
 
 ## Run
 
@@ -12,69 +86,24 @@ The AUR name is **`hyprpanel-settings`** because [`hyprpanel`](https://aur.archl
 hyprpanel-settings
 ```
 
-Default shortcut after you apply config: **Super + ,**
+Default shortcut after you apply config from the app: **Super + ,**
 
-## Install from this tree
+Click **Apply & Reload** in the panel to write `~/.config/hypr/hyprland.lua` and reload Hyprland. Previous configs are copied under `~/.config/hypr/backups/`.
 
-```bash
-make install-local          # ~/.local
-sudo make install PREFIX=/usr
-```
+## Uninstall
 
-## Arch / AUR
-
-Package names:
-
-- `hyprpanel-settings` — tagged release
-- `hyprpanel-settings-git` — latest git (`packaging/aur/PKGBUILD`)
-
-Build the local tree without GitHub:
+User install:
 
 ```bash
-makepkg -si -p PKGBUILD.local
+make uninstall PREFIX="$HOME/.local"
+rm -f ~/.local/bin/hyprpanel
 ```
 
-### Publish on GitHub
+Pacman package:
 
 ```bash
-cd ~/hyprpanel-settings
-git remote add origin git@github.com:pedr0fsc/hyprpanel-settings.git
-git push -u origin main
-git tag v0.1.0
-git push origin v0.1.0
+sudo pacman -R hyprpanel-settings
 ```
-
-Update `url=` in `PKGBUILD` if your GitHub username is not `pedr0fsc`.
-
-### Publish on the AUR
-
-You need an [AUR account](https://aur.archlinux.org/register) and an SSH key uploaded there. The first clone of a new package name creates the empty AUR repo if you are logged in.
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/aur -C "aur"
-# add ~/.ssh/aur.pub at https://aur.archlinux.org/account/
-
-# tagged release package
-cd ~/hyprpanel-settings
-makepkg --printsrcinfo > .SRCINFO
-git clone ssh://aur@aur.archlinux.org/hyprpanel-settings.git ~/src/aur/hyprpanel-settings
-cp PKGBUILD .SRCINFO ~/src/aur/hyprpanel-settings/
-cd ~/src/aur/hyprpanel-settings
-git add PKGBUILD .SRCINFO
-git commit -m "Initial import: hyprpanel-settings 0.1.0"
-git push
-
-# git snapshot package
-git clone ssh://aur@aur.archlinux.org/hyprpanel-settings-git.git ~/src/aur/hyprpanel-settings-git
-cp ~/hyprpanel-settings/packaging/aur/PKGBUILD ~/hyprpanel-settings/packaging/aur/.SRCINFO \
-  ~/src/aur/hyprpanel-settings-git/
-cd ~/src/aur/hyprpanel-settings-git
-git add PKGBUILD .SRCINFO
-git commit -m "Initial import: hyprpanel-settings-git"
-git push
-```
-
-Or run `packaging/publish-aur.sh 0.1.0` after AUR SSH works. The GitHub tag `v0.1.0` must exist before the release PKGBUILD can download its tarball. Until then, install from this tree with `makepkg -si -p PKGBUILD.local`.
 
 ## Shortcuts written by the panel
 
