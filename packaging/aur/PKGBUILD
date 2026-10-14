@@ -1,0 +1,42 @@
+# Maintainer: Pedro da Fonseca Schwertner <pedrodafonsecaschwertner@gmail.com>
+#
+# Git snapshot package. After the GitHub repo exists, copy this PKGBUILD and
+# .SRCINFO into a clone of ssh://aur.archlinux.org/hyprpanel-settings-git.git
+pkgname=hyprpanel-settings-git
+_pkgname=hyprpanel-settings
+pkgver=0.1.0.r0.g0000000
+pkgrel=1
+pkgdesc="Serpantinum-styled GUI for Hyprland keybinds, appearance, monitors, and hyprlock (git)"
+arch=('any')
+url="https://github.com/pedr0fsc/hyprpanel-settings"
+license=('MIT')
+depends=(
+  'python'
+  'python-gobject'
+  'python-cairo'
+  'gtk4'
+  'hyprland'
+)
+optdepends=(
+  'wofi: default application launcher binding'
+  'nautilus: default file manager binding'
+  'kitty: default terminal and task-manager host'
+  'htop: task manager TUI'
+  'hyprlock: lockscreen fallback when Serpantinum lock is unavailable'
+)
+makedepends=('git')
+provides=('hyprpanel-settings')
+conflicts=('hyprpanel-settings')
+source=("$_pkgname::git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/$_pkgname"
+  git describe --long --tags --abbrev=7 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' \
+    || printf "0.1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+  cd "$srcdir/$_pkgname"
+  make DESTDIR="$pkgdir" PREFIX=/usr install
+}

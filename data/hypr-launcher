@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Try Serpantinum's app launcher, then fall back to wofi.
+set -euo pipefail
+QS_MANAGER="${HOME}/.local/share/serpantinum/src/scripts/qs_manager.sh"
+
+if [[ -x "$QS_MANAGER" ]]; then
+  if "$QS_MANAGER" toggle applauncher >/dev/null 2>&1; then
+    exit 0
+  fi
+fi
+
+if command -v wofi >/dev/null 2>&1; then
+  exec wofi --show drun
+fi
+
+if command -v serpantinum >/dev/null 2>&1; then
+  exec serpantinum msg toggle launcher
+fi
+
+echo "hypr-launcher: no launcher found (install wofi or serpantinum)" >&2
+exit 1

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Hyprpanel
+GenericName=Hyprland Settings
+Comment=Serpantinum-styled panel for Hyprland bindings, appearance, and lockscreen
+Exec=hyprpanel-settings
+Icon=hyprpanel-settings
+Terminal=false
+Categories=Settings;DesktopSettings;GTK;
+StartupWMClass=io.hyprpanel.Hyprpanel
+Keywords=hyprland;bindings;shortcuts;theme;lockscreen;serpantinum;config;
