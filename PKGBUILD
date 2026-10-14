@@ -20,9 +20,8 @@ optdepends=(
   'htop: task manager TUI'
   'hyprlock: lockscreen fallback when Serpantinum lock is unavailable'
 )
-makedepends=('git')
-provides=('hyprpanel-settings')
 conflicts=('hyprpanel-settings-git')
+# Replace SKIP with the sha256 of the GitHub v$pkgver tarball after the tag is pushed.
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
