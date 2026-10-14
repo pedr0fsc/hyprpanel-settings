@@ -31,7 +31,7 @@ Package names:
 Build the local tree without GitHub:
 
 ```bash
-makepkg -si -p packaging/PKGBUILD.local
+makepkg -si -p PKGBUILD.local
 ```
 
 ### Publish on GitHub
@@ -48,24 +48,33 @@ Update `url=` in `PKGBUILD` if your GitHub username is not `pedr0fsc`.
 
 ### Publish on the AUR
 
-You need an [AUR account](https://aur.archlinux.org/register) and SSH key uploaded there.
+You need an [AUR account](https://aur.archlinux.org/register) and an SSH key uploaded there. The first clone of a new package name creates the empty AUR repo if you are logged in.
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/aur -C "aur"
 # add ~/.ssh/aur.pub at https://aur.archlinux.org/account/
-git clone ssh://aur@aur.archlinux.org/hyprpanel-settings.git
-cp PKGBUILD .SRCINFO hyprpanel-settings-aur/
-# for the git package:
-git clone ssh://aur@aur.archlinux.org/hyprpanel-settings-git.git
-cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO hyprpanel-settings-git-aur/
-cd hyprpanel-settings-git-aur
+
+# tagged release package
+cd ~/hyprpanel-settings
 makepkg --printsrcinfo > .SRCINFO
+git clone ssh://aur@aur.archlinux.org/hyprpanel-settings.git ~/src/aur/hyprpanel-settings
+cp PKGBUILD .SRCINFO ~/src/aur/hyprpanel-settings/
+cd ~/src/aur/hyprpanel-settings
 git add PKGBUILD .SRCINFO
 git commit -m "Initial import: hyprpanel-settings 0.1.0"
 git push
+
+# git snapshot package
+git clone ssh://aur@aur.archlinux.org/hyprpanel-settings-git.git ~/src/aur/hyprpanel-settings-git
+cp ~/hyprpanel-settings/packaging/aur/PKGBUILD ~/hyprpanel-settings/packaging/aur/.SRCINFO \
+  ~/src/aur/hyprpanel-settings-git/
+cd ~/src/aur/hyprpanel-settings-git
+git add PKGBUILD .SRCINFO
+git commit -m "Initial import: hyprpanel-settings-git"
+git push
 ```
 
-The first `git clone` of a new AUR package name creates the repo if you are logged in. If clone fails, create the package from the AUR website, then clone.
+Or run `packaging/publish-aur.sh 0.1.0` after AUR SSH works. The GitHub tag `v0.1.0` must exist before the release PKGBUILD can download its tarball. Until then, install from this tree with `makepkg -si -p PKGBUILD.local`.
 
 ## Shortcuts written by the panel
 

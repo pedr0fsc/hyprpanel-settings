@@ -7,7 +7,7 @@ ICONDIR := $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps
 DOCDIR := $(DESTDIR)$(PREFIX)/share/doc/hyprpanel-settings
 LICENSEDIR := $(DESTDIR)$(PREFIX)/share/licenses/hyprpanel-settings
 
-.PHONY: install uninstall install-local dist
+.PHONY: install uninstall install-local dist srcinfo
 
 install:
 	install -Dm755 data/hyprpanel-settings "$(BINDIR)/hyprpanel-settings"
@@ -33,3 +33,7 @@ install-local:
 dist:
 	mkdir -p dist
 	git archive --format=tar.gz --prefix=hyprpanel-settings-0.1.0/ -o dist/hyprpanel-settings-0.1.0.tar.gz HEAD
+
+srcinfo:
+	makepkg --printsrcinfo > .SRCINFO
+	cd packaging/aur && makepkg --printsrcinfo > .SRCINFO

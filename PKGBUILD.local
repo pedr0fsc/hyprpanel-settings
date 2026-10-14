@@ -1,5 +1,5 @@
-# Local-tree build: run from the packaging/ directory or:
-#   makepkg -si -p packaging/PKGBUILD.local
+# Local-tree build from the repo root:
+#   makepkg -si -p PKGBUILD.local
 # Maintainer: Pedro da Fonseca Schwertner <pedrodafonsecaschwertner@gmail.com>
 pkgname=hyprpanel-settings
 pkgver=0.1.0
@@ -25,8 +25,7 @@ optdepends=(
 makedepends=('git')
 provides=('hyprpanel-settings')
 conflicts=('hyprpanel-settings-git')
-_srcroot="$(realpath "${startdir}/..")"
-source=("$pkgname::git+file://${_srcroot}")
+source=("$pkgname::git+file://${startdir}")
 sha256sums=('SKIP')
 
 package() {
