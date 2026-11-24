@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Apply the Hyprpanel projection layout when a monitor is plugged in."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+candidates = [
+    Path(__file__).resolve().parent,
+    Path.home() / ".local" / "share" / "hyprpanel-settings",
+    Path("/usr/share/hyprpanel-settings"),
+]
+
+for directory in candidates:
+    if (directory / "projection.py").is_file():
+        sys.path.insert(0, str(directory))
+        from projection import apply_from_state
+
+        raise SystemExit(apply_from_state())
+
+print("hypr-place-monitors: hyprpanel-settings files not found", file=sys.stderr)
+raise SystemExit(1)

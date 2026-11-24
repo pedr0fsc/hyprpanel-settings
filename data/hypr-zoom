@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Hyprland cursor zoom helper. Usage: hypr-zoom in|out|reset"""
+from __future__ import annotations
+
+import subprocess
+import sys
+
+MIN_ZOOM = 1.0
+MAX_ZOOM = 8.0
+STEP = 1.25
+
+
+def hypr(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["hyprctl", *args], capture_output=True, text=True, check=False)
+
+
+def current_factor() -> float:
+    for line in (hypr("getoption", "cursor:zoom_factor").stdout or "").splitlines():
+        if line.startswith("float:"):
+            try:
+                return float(line.split()[1])
+            except (IndexError, ValueError):
+                return MIN_ZOOM
+    return MIN_ZOOM
+
+
+def set_factor(value: float) -> None:
+    clamped = max(MIN_ZOOM, min(MAX_ZOOM, value))
+    code = f"hl.config({{ cursor = {{ zoom_factor = {clamped:.4f} }} }})"
+    result = hypr("eval", code)
+    if result.returncode != 0 or "ok" not in (result.stdout or "").lower():
+        err = (result.stderr or result.stdout or "hyprctl eval failed").strip()
+        print(f"hypr-zoom: {err}", file=sys.stderr)
+        raise SystemExit(1)
+
+
+def main(argv: list[str]) -> int:
+    cmd = (argv[1] if len(argv) > 1 else "").lower()
+    factor = current_factor()
+    if cmd in ("in", "zoom-in", "+"):
+        set_factor(factor * STEP if factor >= MIN_ZOOM else MIN_ZOOM * STEP)
+    elif cmd in ("out", "zoom-out", "-"):
+        set_factor(factor / STEP)
+    elif cmd in ("reset", "1"):
+        set_factor(MIN_ZOOM)
+    else:
+        print("usage: hypr-zoom in|out|reset", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
